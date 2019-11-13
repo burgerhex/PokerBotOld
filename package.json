@@ -1,0 +1,17 @@
+{
+  "name": "pokerbot",
+  "description": "Discord bot that plays multiplayer poker",
+  "version": "0.0.0",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^11.5.1",
+    "request": "2.81.0"
+  },
+  "engines": {
+    "node": ">=12.10.0",
+    "npm": ">=6.11.3"
+  }
+}
