@@ -2,6 +2,8 @@ const Poker = require("./poker");
 const Discord = require("discord.js");
 const client = new Discord.Client();
 
+//VERSION COW
+
 const COMMAND_START = "!";
 const GAME_NAMES = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
     "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"];
@@ -92,6 +94,10 @@ client.on("message", message => {
         send("Are you talking about :blue_car:<@171336809836576768>:blue_car:?");
         log();
     }
+    else if (isCmd("hackerman")) {
+         send("Are you talking about :desktop_computer:<@168376512272269313>:desktop_computer:?");
+         log();
+        }
     else if (isCmd("zzz")) {
         send("Is that the sound of :zzz:<@333059265000636418>:zzz:?");
         log();
