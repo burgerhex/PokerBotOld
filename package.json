@@ -1,7 +1,7 @@
 {
   "name": "pokerbot",
-  "description": "Discord bot that plays multiplayer poker",
-  "version": "0.0.0",
+  "description": "Discord bot that plays multi-player poker",
+  "version": "0.0.1",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
@@ -14,5 +14,6 @@
   "engines": {
     "node": ">=12.10.0",
     "npm": ">=6.11.3"
-  }
+  },
+  "license": "WTFPL"
 }

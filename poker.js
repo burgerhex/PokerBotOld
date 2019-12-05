@@ -20,11 +20,11 @@ class Card {
         let values = new Map([[1, "A"], [11, "J"], [12, "Q"], [13, "K"]]);
 
         let val = this.value;
-        return ((val === 1 || val > 10)? values.get(val) : val) + " of " + suits.get(this.suit);
+        return ((val === 1 || val > 10) ? values.get(val) : val) + " of " + suits.get(this.suit);
     }
 }
 
-exports.generateDeck = function() {
+exports.generateDeck = function () {
     let deck = [];
 
     for (let val = 1; val <= 13; val++) {
@@ -81,7 +81,7 @@ function swap(arr, i, j) {
     arr[j] = temp;
 }
 
-exports.getHand = function(arr) {
+exports.getHand = function (arr) {
     if (isRoyalFlush(arr))
         return HANDS.ROYAL_FLUSH;
     else if (isStraightFlush(arr))
@@ -105,7 +105,7 @@ exports.getHand = function(arr) {
 };
 
 function appearances(cards, mode /* s for suits, v for values */) {
-    let nums = cards.map(c => (mode === "s")? c.suit : c.value);
+    let nums = cards.map(c => (mode === "s") ? c.suit : c.value);
     let set = new Set(nums);
     let uniques = [...set];
     return uniques.map(num => nums.filter(e => e === num).length);
@@ -115,7 +115,7 @@ function possibleHands(arr) {
     return cmb.combination(arr, 5).toArray();
 }
 
-function isRoyalFlush (arr) {
+function isRoyalFlush(arr) {
     for (let combo of possibleHands(arr)) {
         let values = combo.map(c => c.value);
 
