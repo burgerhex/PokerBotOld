@@ -1,16 +1,9 @@
 const cmb = require("js-combinatorics");
 
-exports.HANDS = {
-    HIGH_CARD: 1,
-    PAIR: 2,
-    TWO_PAIR: 3,
-    THREE_KIND: 4,
-    STRAIGHT: 5,
-    FLUSH: 6,
-    FULL_HOUSE: 7,
-    FOUR_KIND: 8,
-    STRAIGHT_FLUSH: 9,
-    ROYAL_FLUSH: 10
+HANDS = {
+    HIGH_CARD: "only a high card", PAIR: "a pair", TWO_PAIR: "two pairs", THREE_KIND: "three of a kind",
+    STRAIGHT: "a straight", FLUSH: "a flush", FULL_HOUSE: "a full house", FOUR_KIND: "four of a kind",
+    STRAIGHT_FLUSH: "a straight flush", ROYAL_FLUSH: "a royal flush (wow)"
 };
 
 class Card {
@@ -19,26 +12,19 @@ class Card {
         this.suit = suit;
     }
 
-    equals(c) {
-        return this.value === c.value && this.suit === c.suit;
-    }
-
-    greaterThan(c) {
-        let suits = ['d', 'h', 'c', 's'];
-        return this.value > c.value ||
-            (this.value === c.value && suits.indexOf(this.suit) > suits.indexOf(c.suit));
-    }
-
     toString() {
-        let suits = new Map([['d', "Diamonds"], ['h', "Hearts"], ['c', "Clubs"], ['s', "Spades"]]);
-        let values = new Map([[1, "Ace"], [2, "Two"], [3, "Three"], [4, "Four"], [5, "Five"], [6, "Six"],
-            [7, "Seven"], [8, "Eight"], [9, "Nine"], [10, "Ten"], [11, "Jack"], [12, "Queen"], [13, "King"]]);
+        // let suits = new Map([['d', "Diamonds"], ['h', "Hearts"], ['c', "Clubs"], ['s', "Spades"]]);
+        let suits = new Map([['d', ":diamonds:"], ['h', ":hearts:"], ['c', ":clubs:"], ['s', ":spades:"]]);
+        // let values = new Map([[1, "Ace"], [2, "Two"], [3, "Three"], [4, "Four"], [5, "Five"], [6, "Six"],
+        //     [7, "Seven"], [8, "Eight"], [9, "Nine"], [10, "Ten"], [11, "Jack"], [12, "Queen"], [13, "King"]]);
+        let values = new Map([[1, "A"], [11, "J"], [12, "Q"], [13, "K"]]);
 
-        return values.get(this.value) + " of " + suits.get(this.suit);
+        let val = this.value;
+        return ((val === 1 || val > 10)? values.get(val) : val) + " of " + suits.get(this.suit);
     }
 }
 
-function generateDeck() {
+exports.generateDeck = function() {
     let deck = [];
 
     for (let val = 1; val <= 13; val++) {
@@ -48,35 +34,36 @@ function generateDeck() {
     }
 
     return deck;
-}
+};
 
 exports.Game = class {
-    constructor(client, playersArr, categoryChannel) {
+    constructor(client, gameChannel, playersArr) {
         this.client = client;
+        this.gameChannel = gameChannel;
+        // this.letter = gameChannel.name.split("-")[0];
         this.players = playersArr;
-        this.channel = categoryChannel;
-        this.letter = this.channel.name.toLowerCase().split(" ")[2];
-        this.deck = generateDeck();
+        this.cards = new Map();
+        this.river = [];
+        this.deck = exports.generateDeck();
+        shuffle(this.deck);
     }
 
     deal() {
-        shuffle(this.deck);
-        console.log("players: " + this.players.map(player => player.username));
-        console.log("children: " + Array.from(this.channel.children.values()).map(chan => chan.name));
-        console.log("deck: " + this.deck.map(c => c.toString()));
+        console.log("Starting deal.");
+        console.log("Players: " + this.players.map(p => p.username));
+
+        for (let i = 0; i < 5; i++)
+            this.river.push(this.deck.pop());
 
         for (let player of this.players) {
-            for (let ch of this.channel.children.values()) {
-                console.log("checking " + player.username + " against " + ch.name);
-                if (ch.name === this.letter + "-" + player.username) {
-                    let card1 = this.deck.pop();
-                    let card2 = this.deck.pop();
+            let card1 = this.deck.pop();
+            let card2 = this.deck.pop();
+            this.cards.set(player.id, [card1, card2]);
 
-                    this.client.channels.get(ch.id.toString()).send(
-                        player + ", your cards are:\n" + card1.toString() + "\n" + card2.toString()
-                    ).then();
-                }
-            }
+            this.client.users.get(player.id).send(
+                "Your cards for " + this.gameChannel + " are:\n" + card1.toString() + "\n" + card2.toString() + "\n" +
+                "This hand has " + exports.getHand([card1, card2].concat(this.river)) + "."
+            ).then();
         }
     }
 };
@@ -95,11 +82,6 @@ function swap(arr, i, j) {
 }
 
 exports.getHand = function(arr) {
-    if (arr.length !== 7) {
-        console.log("Error: did not receive 7 cards before hand retrieval, aborting");
-        return;
-    }
-
     if (isRoyalFlush(arr))
         return HANDS.ROYAL_FLUSH;
     else if (isStraightFlush(arr))
@@ -118,29 +100,27 @@ exports.getHand = function(arr) {
         return HANDS.TWO_PAIR;
     else if (isPair(arr))
         return HANDS.PAIR;
+    else
+        return HANDS.HIGH_CARD;
 };
 
-function appearances(arr) {
-    let set = new Set(arr);
+function appearances(cards, mode /* s for suits, v for values */) {
+    let nums = cards.map(c => (mode === "s")? c.suit : c.value);
+    let set = new Set(nums);
     let uniques = [...set];
-    let appearances = uniques.map(num => arr.filter(e => e === num).length);
-
-    let map = new Map();
-    for (let i = 0; i < uniques.length; i++)
-        map.set(uniques[i], appearances[i]);
-
-    return map;
+    return uniques.map(num => nums.filter(e => e === num).length);
 }
 
 function possibleHands(arr) {
-    return cmb.combination(arr, 5);
+    return cmb.combination(arr, 5).toArray();
 }
 
 function isRoyalFlush (arr) {
-    let combos = possibleHands(arr);
+    for (let combo of possibleHands(arr)) {
+        let values = combo.map(c => c.value);
 
-    for (let combo of combos) {
-        if (isStraight(combo) && isFlush(combo) && isStraight(combo).value === 10)
+        // royal flush is the only straight that has both ace and king
+        if (isStraight(combo) && isFlush(combo) && values.includes(1) && values.includes(13))
             return true;
     }
 
@@ -148,10 +128,8 @@ function isRoyalFlush (arr) {
 }
 
 function isStraightFlush(arr) {
-    let combos = possibleHands(arr);
-
-    for (let combo of combos) {
-        if (isStraight(arr) && isFlush(arr))
+    for (let combo of possibleHands(arr)) {
+        if (isStraight(combo) && isFlush(combo))
             return true;
     }
 
@@ -159,94 +137,59 @@ function isStraightFlush(arr) {
 }
 
 function isFourKind(arr) {
-    let combos = possibleHands(arr);
-
-    for (let combo of combos) {
-        let values = combo.map(c => c.value);
-        let appearances = appearances(values);
-
-        if (Array.from(appearances.values()).includes(4)) {
-            return true;
-        }
-    }
-
-    return false;
+    let app = appearances(arr, "v");
+    return app.includes(4);
 }
 
 function isFullHouse(arr) {
-    let combos = possibleHands(arr);
+    for (let combo of possibleHands(arr)) {
+        let app = appearances(combo, "v");
 
-    for (let combo of combos) {
-        let values = combo.map(c => c.value);
-        let appearances = appearances(values);
-
-        if (Array.from(appearances.values()).includes(3) &&
-            Array.from(appearances.values()).includes(2)) {
+        if (app.includes(3) && app.includes(2))
             return true;
-        }
     }
 
     return false;
 }
 
 function isFlush(arr) {
-    let combos = possibleHands(arr);
-
-    for (let combo of combos) {
-        let suits = combo.map(c => c.suit);
-        let appearances = appearances(suits);
-
-        if (Array.from(appearances.values()).includes(5))
-            return true;
-    }
-
-    return false;
+    let app = appearances(arr, "s");
+    return app.includes(5);
 }
 
+// probably simplifiable
 function isStraight(arr) {
-    let combos = possibleHands(arr);
+    out:
+        for (let combo of possibleHands(arr)) {
+            let values = combo.map(c => c.value);
+            values.sort();
 
-    for (let combo of combos) {
-        let values = combo.map(c => c.value);
-        let has = (v) => values.includes(v);
-
-        for (let start = 1; start <= 10; start++) {
-            let hasAll = true;
-            for (let add = 0; add < combo.length; add++)
-                hasAll &= has((start + add - 1) % 13 + 1); // weird bc of 10-A straight but it works
-
-            if (hasAll)
+            // must check 10-A straight manually
+            if ([1, 10, 11, 12, 13].every(v => combo.includes(v)))
                 return true;
+
+            for (let i = 0; i < combo.length - 1; i++) {
+                if (combo[i] + 1 !== combo[i + 1])
+                    continue out;
+            }
+
+            return true;
         }
-    }
 
     return false;
 }
 
 function isThreeKind(arr) {
-    let combos = possibleHands(arr);
-
-    for (let combo of combos) {
-        let values = combo.map(c => c.value);
-        let appearances = appearances(values);
-
-        if (Array.from(appearances.values()).includes(3)) {
-            return true;
-        }
-    }
-
-    return false;
+    let app = appearances(arr, "v");
+    return app.includes(3);
 }
 
+// maybe can be simplified?
 function isTwoPair(arr) {
-    let combos = possibleHands(arr);
+    for (let combo of possibleHands(arr)) {
+        let app = appearances(combo, "v");
 
-    for (let combo of combos) {
-        let values = combo.map(c => c.value);
-        let appearances = appearances(values);
-
-        if (Array.from(appearances.values()).includes(2) &&
-            Array.from(appearances.values()).includes(1)) {
+        if (app.includes(2) && app.includes(1)) {
             return true;
         }
     }
@@ -255,16 +198,6 @@ function isTwoPair(arr) {
 }
 
 function isPair(arr) {
-    let combos = possibleHands(arr);
-
-    for (let combo of combos) {
-        let values = combo.map(c => c.value);
-        let appearances = appearances(values);
-
-        if (Array.from(appearances.values()).includes(2)) {
-            return true;
-        }
-    }
-
-    return false;
+    let app = appearances(arr, "v");
+    return app.includes(2);
 }

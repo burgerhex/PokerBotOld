@@ -7,8 +7,8 @@ const client = new Discord.Client();
 const COMMAND_START = "!";
 const GAME_NAMES = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
     "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi", "chi", "psi", "omega"];
-const WAIT_SECONDS = 12;
-const NUM_EDITS = 6;
+const WAIT_SECONDS = 10;
+const NUM_EDITS = 4;
 const JOIN_EMOJI = "✅";
 
 let activeGames = [];
@@ -67,14 +67,10 @@ client.on("message", message => {
     let channel = message.channel;
     let author = message.author;
 
-    for (let category of activeGames.map(game => game.channel)) {
-        let letter = category.name.toLowerCase().split(" ")[2];
-
-        for (let ch of category.children.values()) {
-            if (ch.name === letter + "-game" && channel.id === ch.id) {
-                message.delete().then();
-                return;
-            }
+    for (let chan of activeGames.map(game => game.gameChannel)) {
+        if (chan.id === channel.id) {
+            message.delete().then();
+            return;
         }
     }
 
@@ -97,7 +93,7 @@ client.on("message", message => {
     else if (isCmd("hackerman")) {
          send("Are you talking about :desktop_computer:<@168376512272269313>:desktop_computer:?");
          log();
-        }
+    }
     else if (isCmd("zzz")) {
         send("Is that the sound of :zzz:<@333059265000636418>:zzz:?");
         log();
@@ -138,7 +134,7 @@ client.on("message", message => {
         log();
 
         for (let i = 0; i < activeGames.length; i++) {
-            if (activeGames[i].channel.name.toLowerCase().split(" ")[2] === letter)
+            if (activeGames[i].gameChannel.name.split("-")[0] === letter)
                 activeGames.splice(i, 1);
         }
     }
@@ -152,8 +148,6 @@ client.on("message", message => {
         // message to get people in game
         log();
         send(pokerMsg(WAIT_SECONDS)).then(sent => {
-            message.delete().then();
-
             // get id of this message
             let id = sent.id;
             let queryMsg = channel.messages.get(id);
@@ -202,45 +196,43 @@ client.on("message", message => {
                 guild.createChannel(name,{type: "category", permissionOverwrites: overwrites})
                     .then(category => {
 
-                        // create game and chat channels
+                        console.log("Starting Poker Game Alpha!");
+
+                        // create game channel
                         guild.createChannel(letter + "-game",
                             {type: "text", permissionOverwrites: overwrites,
                                 parent: category, position: 1}).then(chan => {
-                            queryMsg.edit(`Game ${letterCap} has begun! Players: ` + englishList(players) +
-                                ". Head to " + chan + " to play!").then();
+                            // update original message
+                            queryMsg.edit("Game " + letterCap + " has begun! Players: " +
+                                englishList(players) + ". Head to " + chan + " to play!").then();
+                            console.log("Created game channel for " + letter + ".");
 
+                            let game = new Poker.Game(client, chan, players);
+                            activeGames.push(game);
+
+                            // deal cards
+                            game.deal();
+                            console.log("Dealt cards for " + letter + ".");
+
+                            client.channels.get(chan.id)
+                                .send("Welcome to " + chan + ". The river is:\n" + game.river.join("\n")).then();
+
+                            // create chat channel
                             guild.createChannel(letter + "-chat",
                                 {type: "text", permissionOverwrites: overwrites,
                                     parent: category, position: 2}).then(chat => {
-                                client.channels.get(chat.id.toString())
+                                client.channels.get(chat.id)
                                     .send("This is the discussion channel for " + chan + ".");
+                                console.log("Created chat channel for " + letter + ".")
                             });
                         });
 
+                        // create voice channel
                         guild.createChannel(letter + "-voice",
                             {type: "voice", permissionsOverwrites: overwrites,
-                                parent: category, position: 3}).then();
-
-                        // create player-specific channels
-                        for (let player of players) {
-                            guild.createChannel(letter + "-" + player.username,
-                                {
-                                    type: "text",
-                                    permissionOverwrites: [
-                                        {id: guild.defaultRole.id, deny: Discord.Permissions.FLAGS.VIEW_CHANNEL},
-                                        {id: player.id, allow: Discord.Permissions.FLAGS.VIEW_CHANNEL}
-                                    ],
-                                    parent: category
-                                }).then(chan => {
-                                client.channels.get(chan.id.toString())
-                                    .send(player + ", this is your channel.").then();
-                            });
-                        }
-
-                        let game = new Poker.Game(client, players, category);
-                        activeGames.push(game);
-                        game.deal();
-
+                                parent: category, position: 3}).then(() =>
+                            console.log("Created voice channel for " + letter + ".")
+                        );
                     });
 
             }, WAIT_SECONDS * 1e3);
