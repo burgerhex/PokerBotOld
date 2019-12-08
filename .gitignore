@@ -140,6 +140,9 @@ typings/
 # TypeScript cache
 *.tsbuildinfo
 
+# Ignore built ts files
+dist/**/*
+
 # Optional npm cache directory
 .npm
 
