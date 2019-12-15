@@ -4,12 +4,17 @@
   "version": "0.0.1",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "build": "tsc",
+    "start": "node dist/bot.js"
   },
   "dependencies": {
+    "@types/js-combinatorics": "^0.5.31",
+    "@types/node": "^12.12.14",
+    "@types/request": "^2.48.3",
     "discord.js": "^11.5.1",
     "js-combinatorics": "^0.5.4",
-    "request": "2.81.0"
+    "request": "2.81.0",
+    "typescript": "^3.7.3"
   },
   "engines": {
     "node": ">=12.10.0",
