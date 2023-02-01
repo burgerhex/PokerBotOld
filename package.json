@@ -1,7 +1,7 @@
 {
   "name": "pokerbot",
   "description": "Discord bot that plays multi-player poker",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "bot.js",
   "scripts": {
     "build": "tsc",
